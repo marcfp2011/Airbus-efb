@@ -1,4 +1,3 @@
-import React, { useState, useEffect } from 'react';
 import { 
   Plane, Wifi, BatteryCharging, Gauge, ArrowRight, 
   ShieldCheck, FileText, Map, Settings, AlertTriangle, 
