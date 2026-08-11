@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  BatteryCharging, CheckSquare, Search, Compass, ZoomIn, ZoomOut, Maximize2 
+  BatteryCharging, CheckSquare, Search, Compass, ZoomIn, ZoomOut 
 } from 'lucide-react';
 
 export default function AirbusEFBApp() {
@@ -15,12 +15,32 @@ export default function AirbusEFBApp() {
     };
     updateTime();
     const timer = setInterval(updateTime, 1000);
-    return () => flexTimer = clearInterval(timer);
+    return () => clearInterval(timer);
   }, []);
 
+  // BASE DE DATOS DE AEROPUERTOS DISPONIBLES
+  const AIRPORTS_LIST = [
+    { name: 'Madrid-Barajas', icao: 'LEMD', elev: '2,000 FT', rwy: '36L/18R 4,179M', mag: '2° W', trans: '6000 FT' },
+    { name: 'Barcelona-El Prat', icao: 'LEBL', elev: '12 FT', rwy: '24L/06R 2,660M', mag: '1° E', trans: '6000 FT' },
+    { name: 'Palma de Mallorca', icao: 'LEPA', elev: '27 FT', rwy: '24R/06L 3,270M', mag: '2° E', trans: '6000 FT' },
+    { name: 'Ibiza', icao: 'LEIB', elev: '24 FT', rwy: '06/24 2,800M', mag: '2° E', trans: '6000 FT' },
+    { name: 'Menorca', icao: 'LEMH', elev: '303 FT', rwy: '01/19 2,550M', mag: '2° E', trans: '6000 FT' },
+    { name: 'Reus', icao: 'LERS', elev: '234 FT', rwy: '07/25 2,459M', mag: '1° E', trans: '6000 FT' },
+    { name: 'Toulouse-Blagnac', icao: 'LFBO', elev: '499 FT', rwy: '14R/32L 3,500M', mag: '1° E', trans: '5000 FT' },
+  ];
+
   // RUTA Y AEROPUERTOS
-  const [origin, setOrigin] = useState('LEMD');
+  const [selectedAirportIndex, setSelectedAirportIndex] = useState(0); // Madrid por defecto
+  const currentAirport = AIRPORTS_LIST[selectedAirportIndex];
+
+  const [origin, setOrigin] = useState(currentAirport.icao);
   const [destination, setDestination] = useState('EGLL');
+
+  // Cambiar origen cuando se selecciona un aeropuerto en Charts
+  const handleAirportSelect = (index) => {
+    setSelectedAirportIndex(index);
+    setOrigin(AIRPORTS_LIST[index].icao);
+  };
 
   // PERF TAKEOFF
   const [runway, setRunway] = useState('36L');
@@ -483,7 +503,6 @@ export default function AirbusEFBApp() {
             <div className="bg-[#111622] border border-slate-800 rounded-xl p-4 space-y-4">
               <h2 className="text-sm font-bold text-cyan-400 tracking-wider border-b border-slate-800 pb-2">LISTAS DE COMPROBACIÓN OPERATIVAS (AIRBUS A320)</h2>
               
-              {/* SUB-PESTAÑAS DE FASES DE VUELO */}
               <div className="flex gap-1.5 border-b border-slate-800 pb-2 overflow-x-auto">
                 {[
                   { id: 'cockpitPreflight', label: 'COCKPIT PREFLIGHT' },
@@ -515,7 +534,6 @@ export default function AirbusEFBApp() {
                 ))}
               </div>
 
-              {/* LISTA DE ITEMS MARCABLES */}
               <div className="space-y-2">
                 {checklists[activeChecklistTab]?.map(item => (
                   <div 
@@ -535,15 +553,29 @@ export default function AirbusEFBApp() {
             </div>
           )}
 
-          {/* CHARTS & MAPS (VISOR PDF / CARTA EMBEBIDO) */}
+          {/* CHARTS & MAPS (CON SELECCIÓN DE 7 AEROPUERTOS) */}
           {activeTab === 'charts' && (
             <div className="bg-[#111622] border border-slate-800 rounded-xl p-3 h-full flex flex-col justify-between">
               <div className="space-y-3 flex-1 flex flex-col">
-                <div className="flex justify-between items-center border-b border-slate-800 pb-2">
+                <div className="flex flex-wrap items-center justify-between border-b border-slate-800 pb-2 gap-2">
                   <div className="flex items-center gap-2">
                     <Compass className="w-4 h-4 text-cyan-400" />
-                    <span className="text-xs font-bold text-cyan-400 font-mono">VISOR DE CARTAS EMBEBIDO ({origin})</span>
+                    <span className="text-xs font-bold text-cyan-400 font-mono">SELECCIÓN DE AEROPUERTO:</span>
+                    
+                    {/* DESPLEGABLE DE AEROPUERTOS */}
+                    <select
+                      value={selectedAirportIndex}
+                      onChange={e => handleAirportSelect(Number(e.target.value))}
+                      className="bg-[#090d14] border border-cyan-500/50 text-amber-400 font-mono text-xs font-bold px-2 py-1 rounded outline-none cursor-pointer"
+                    >
+                      {AIRPORTS_LIST.map((ap, idx) => (
+                        <option key={ap.icao} value={idx}>
+                          {ap.name} ({ap.icao})
+                        </option>
+                      ))}
+                    </select>
                   </div>
+
                   <div className="flex items-center gap-2">
                     {['TAXI', 'SID', 'STAR', 'IAC'].map(t => (
                       <button
@@ -575,24 +607,23 @@ export default function AirbusEFBApp() {
                     ></iframe>
                   ) : (
                     <div className="w-full h-full flex flex-col items-center justify-center overflow-auto p-4" style={{ transform: `scale(${zoomLevel})` }}>
-                      {/* SIMULADOR VISUAL DE PISTA / CARTA INTEGRADO */}
                       <div className="w-full max-w-lg bg-[#111622] border border-cyan-500/30 rounded-lg p-4 font-mono text-left space-y-3">
                         <div className="flex justify-between text-xs border-b border-slate-800 pb-2">
-                          <span className="text-amber-400 font-bold">{origin} / {chartType} CHART</span>
+                          <span className="text-amber-400 font-bold">{currentAirport.name} ({currentAirport.icao}) - {chartType}</span>
                           <span className="text-slate-500">AIRBUS EFB NAV</span>
                         </div>
                         <div className="h-44 bg-[#070a0f] border border-slate-800 rounded flex items-center justify-center relative overflow-hidden">
                           <div className="w-full h-8 bg-slate-800 border-t-2 border-b-2 border-dashed border-slate-500 flex items-center justify-around">
-                            <span className="text-[10px] text-white font-bold tracking-widest">36L</span>
-                            <span className="text-[10px] text-emerald-400 font-bold">||||||||||||</span>
-                            <span className="text-[10px] text-white font-bold tracking-widest">18R</span>
+                            <span className="text-[10px] text-white font-bold tracking-widest">{currentAirport.icao}</span>
+                            <span className="text-[10px] text-emerald-400 font-bold">||||||||||||||||||||</span>
+                            <span className="text-[10px] text-white font-bold tracking-widest">RWY</span>
                           </div>
-                          <div className="absolute top-2 left-2 text-[9px] text-cyan-400">ELEV: 2,000 FT</div>
-                          <div className="absolute bottom-2 right-2 text-[9px] text-emerald-400">RWY 36L/18R 4,179M</div>
+                          <div className="absolute top-2 left-2 text-[9px] text-cyan-400">ELEV: {currentAirport.elev}</div>
+                          <div className="absolute bottom-2 right-2 text-[9px] text-emerald-400">RWY MAIN: {currentAirport.rwy}</div>
                         </div>
                         <div className="text-[10px] text-slate-400 flex justify-between">
-                          <span>TRANS ALT: 6000 FT</span>
-                          <span>MAG VAR: 2° W</span>
+                          <span>TRANS ALT: {currentAirport.trans}</span>
+                          <span>MAG VAR: {currentAirport.mag}</span>
                         </div>
                       </div>
                     </div>
