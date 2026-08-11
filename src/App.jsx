@@ -99,7 +99,7 @@ const AIRPORT_DATABASE = {
   }
 };
 
-export default function App() {
+export default function AirportCharts() {
   const [selectedIcao, setSelectedIcao] = useState('LEMD');
   const canvasRef = useRef(null);
 
@@ -109,13 +109,11 @@ export default function App() {
     const ctx = canvas.getContext('2d');
     const config = AIRPORT_DATABASE[selectedIcao];
 
-    // Dimensiones e incremento de escala
     const W = 600;
     const H = 840;
     canvas.width = W;
     canvas.height = H;
 
-    // Colores
     const BG = '#090d16';
     const CARD_BG = '#111827';
     const CARD_BORDER = '#1f293d';
@@ -125,7 +123,6 @@ export default function App() {
     const TEXT_WHITE = '#ffffff';
     const TEXT_MUTED = '#94a3b8';
 
-    // Función auxiliar para transformar coordenadas del mapa (0-100)
     const mapX = (x) => 30 + (x / 100) * 540;
     const mapY = (y) => 810 - (y / 100) * 426;
 
@@ -206,12 +203,11 @@ export default function App() {
     ctx.font = 'bold 12px sans-serif';
     ctx.fillText("AIRPORT DIAGRAM & RUNWAY LAYOUT", 45, 405);
 
-    // Indicador Norte
     ctx.fillStyle = ACCENT_BLUE;
     ctx.font = 'bold 12px sans-serif';
     ctx.fillText("N ↑", 530, 415);
 
-    // Cuadro de Pistas
+    // Cuadro RWY DATA
     ctx.fillStyle = BG;
     ctx.fillRect(45, 690, 85, 100);
     ctx.strokeRect(45, 690, 85, 100);
@@ -221,13 +217,12 @@ export default function App() {
       ctx.fillText(line, 50, 705 + idx * 15);
     });
 
-    // Dibujar Pistas
+    // Pistas
     config.runways.forEach(rwy => {
       const [p1, p2] = rwy.coords;
       const x1 = mapX(p1[0]), y1 = mapY(p1[1]);
       const x2 = mapX(p2[0]), y2 = mapY(p2[1]);
 
-      // Pista asfalto
       ctx.strokeStyle = '#334155';
       ctx.lineWidth = 10;
       ctx.beginPath();
@@ -235,7 +230,6 @@ export default function App() {
       ctx.lineTo(x2, y2);
       ctx.stroke();
 
-      // Línea central
       ctx.strokeStyle = '#e2e8f0';
       ctx.lineWidth = 1.5;
       ctx.setLineDash([4, 4]);
@@ -245,7 +239,6 @@ export default function App() {
       ctx.stroke();
       ctx.setLineDash([]);
 
-      // Etiquetas de pista
       ctx.fillStyle = TEXT_WHITE;
       ctx.font = 'bold 10px monospace';
       ctx.textAlign = 'center';
@@ -253,7 +246,7 @@ export default function App() {
       ctx.fillText(rwy.label2, mapX(rwy.pos2[0]), mapY(rwy.pos2[1]));
     });
 
-    // Edificios y Terminales
+    // Edificios
     config.buildings.forEach(b => {
       ctx.fillStyle = b.color;
       ctx.strokeStyle = b.border;
@@ -286,20 +279,19 @@ export default function App() {
   }, [selectedIcao]);
 
   return (
-    <div style={{ backgroundColor: '#030712', minHeight: '100vh', padding: '20px', color: '#fff', fontFamily: 'sans-serif', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-      
-      {/* Botones Selector de Aeropuerto */}
-      <div style={{ marginBottom: '20px', display: 'flex', gap: '10px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '10px' }}>
+      {/* Botones de selección de aeropuerto */}
+      <div style={{ marginBottom: '15px', display: 'flex', gap: '8px' }}>
         {Object.keys(AIRPORT_DATABASE).map(icao => (
           <button
             key={icao}
             onClick={() => setSelectedIcao(icao)}
             style={{
-              padding: '8px 16px',
+              padding: '6px 14px',
               backgroundColor: selectedIcao === icao ? '#38bdf8' : '#111827',
               color: selectedIcao === icao ? '#000' : '#38bdf8',
               border: '1px solid #1f293d',
-              borderRadius: '6px',
+              borderRadius: '4px',
               fontWeight: 'bold',
               cursor: 'pointer'
             }}
@@ -309,13 +301,14 @@ export default function App() {
         ))}
       </div>
 
-      {/* Renderizado en Canvas */}
+      {/* Visualizador Canvas */}
       <canvas
         ref={canvasRef}
         style={{
+          maxWidth: '100%',
+          height: 'auto',
           border: '1px solid #1f293d',
-          borderRadius: '8px',
-          boxShadow: '0 10px 25px rgba(0,0,0,0.5)'
+          borderRadius: '8px'
         }}
       />
     </div>
