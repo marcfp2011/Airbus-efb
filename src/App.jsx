@@ -1,12 +1,26 @@
+import React, { useState, useEffect } from 'react';
 import { 
   Plane, Wifi, BatteryCharging, Gauge, ArrowRight, 
   ShieldCheck, FileText, Map, Settings, AlertTriangle, 
-  CheckCircle2, RefreshCw, Send
+  CheckCircle2, RefreshCw, Send, CheckSquare, Search, Fuel
 } from 'lucide-react';
 
 export default function AirbusEFBApp() {
   const [activeTab, setActiveTab] = useState('takeoff');
 
+  // Reloj Zulu en tiempo real
+  const [timeZulu, setTimeZulu] = useState('');
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      setTimeZulu(now.toISOString().substring(11, 19) + ' Z');
+    };
+    updateTime();
+    const timer = setInterval(updateTime, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // PERF TAKEOFF States
   const [airport, setAirport] = useState('LEMD');
   const [runway, setRunway] = useState('36L');
   const [runwayCondition, setRunwayCondition] = useState('DRY');
@@ -14,13 +28,11 @@ export default function AirbusEFBApp() {
   const [windSpeed, setWindSpeed] = useState(15);
   const [oat, setOat] = useState(16);
   const [qnh, setQnh] = useState(1025);
-
   const [tow, setTow] = useState(64.2);
   const [flaps, setFlaps] = useState('CONF 2');
   const [packs, setPacks] = useState('OFF');
-  const [antiIce, setAntiIce] = useState('OFF');
 
-  const [computed, setComputed] = useState(true);
+  // TAKEOFF Computed Values
   const [v1, setV1] = useState(142);
   const [vr, setVr] = useState(145);
   const [v2, setV2] = useState(149);
@@ -51,19 +63,48 @@ export default function AirbusEFBApp() {
     const calculatedCG = (25.0 + (tow - 55) * 0.35).toFixed(1);
     setCgPercent(calculatedCG);
     setPitchTrim(`UP ${(calculatedCG > 27 ? (calculatedCG - 27) * 0.25 : 0).toFixed(1)}°`);
-
-    setMcduSent(false);
   }, [tow, flaps, oat, runwayCondition, windSpeed]);
 
-  const handleMCDUSync = () => {
-    setMcduSent(true);
-    setTimeout(() => setMcduSent(false), 4000);
+  // LOAD & FUEL States
+  const [paxCount, setPaxCount] = useState(150);
+  const [cargoWeight, setCargoWeight] = useState(2.5); // toneladas
+  const [blockFuel, setBlockFuel] = useState(9.8); // toneladas
+  const oew = 42.5; // Operational Empty Weight
+  const zfw = (oew + (paxCount * 0.084) + cargoWeight).toFixed(1);
+  const calculatedTOW = (parseFloat(zfw) + blockFuel).toFixed(1);
+
+  // CHECKLIST State
+  const [checklists, setChecklists] = useState({
+    beforeStart: [
+      { id: 1, text: 'COCKPIT PREP .................... COMPLETED', checked: false },
+      { id: 2, text: 'GEAR PINS & COVERS ............. REMOVED', checked: false },
+      { id: 3, text: 'SIGNS .......................... ON / AUTO', checked: false },
+      { id: 4, text: 'ADIRS .......................... NAV', checked: false },
+      { id: 5, text: 'BARO REF ....................... SET', checked: false }
+    ],
+    afterStart: [
+      { id: 6, text: 'ANTI ICE ....................... AS REQ', checked: false },
+      { id: 7, text: 'ECAM STATUS .................... CHECKED', checked: false },
+      { id: 8, text: 'PITCH TRIM ..................... SET', checked: false },
+      { id: 9, text: 'RUDDER TRIM .................... ZERO', checked: false }
+    ]
+  });
+
+  const toggleChecklist = (category, id) => {
+    setChecklists(prev => ({
+      ...prev,
+      [category]: prev[category].map(item => item.id === id ? { ...item, checked: !item.checked } : item)
+    }));
   };
+
+  // FCOM Search State
+  const [searchQuery, setSearchQuery] = useState('');
 
   return (
     <div className="w-full h-screen bg-[#070a0f] text-slate-200 font-sans flex flex-col select-none overflow-hidden">
       
-      <header className="h-11 bg-gradient-to-b from-[#161c28] to-[#0e131d] border-b border-slate-800 px-4 flex items-center justify-between">
+      {/* HEADER SUPERIOR */}
+      <header className="h-11 bg-gradient-to-b from-[#161c28] to-[#0e131d] border-b border-slate-800 px-4 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
           <span className="bg-cyan-500/10 border border-cyan-400/40 text-cyan-400 font-mono text-xs px-2 py-0.5 rounded font-bold tracking-wide">
             A320neo (PW1100G)
@@ -85,15 +126,17 @@ export default function AirbusEFBApp() {
           <span className="text-slate-400 flex items-center gap-1">
             <BatteryCharging className="w-3.5 h-3.5 text-emerald-400"/> 98%
           </span>
-          <span className="bg-[#18202f] border border-slate-700 text-cyan-400 font-bold px-2 py-0.5 rounded">
-            09:51:40 Z
+          <span className="bg-[#18202f] border border-slate-700 text-cyan-400 font-bold px-2 py-0.5 rounded min-w-[85px] text-center">
+            {timeZulu || '00:00:00 Z'}
           </span>
         </div>
       </header>
 
+      {/* CONTENIDO PRINCIPAL */}
       <div className="flex-1 flex overflow-hidden">
         
-        <aside className="w-48 bg-[#0d111a] border-r border-slate-800 p-2 flex flex-col justify-between">
+        {/* BARRA LATERAL NAVEGABLE */}
+        <aside className="w-52 bg-[#0d111a] border-r border-slate-800 p-2 flex flex-col justify-between shrink-0">
           <div className="space-y-1">
             {[
               { id: 'takeoff', label: 'PERF TAKEOFF', icon: '🚀' },
@@ -123,277 +166,286 @@ export default function AirbusEFBApp() {
           </div>
         </aside>
 
-        <main className="flex-1 p-3 grid grid-cols-1 md:grid-cols-3 gap-3 bg-[#070a0f] overflow-y-auto">
+        {/* CONTENIDO INTERACTIVO SEGÚN PESTAÑA */}
+        <main className="flex-1 p-3 bg-[#070a0f] overflow-y-auto">
           
-          <section className="bg-[#111622] border border-slate-800 rounded-xl p-3 flex flex-col justify-between">
-            <div>
-              <div className="flex justify-between items-center border-b border-slate-800 pb-2 mb-3">
-                <span className="text-xs font-bold text-cyan-400 tracking-wider">ENTORNO Y CONFIGURACIÓN</span>
-                <span className="text-[10px] font-mono text-slate-500">{airport} / {runway}</span>
-              </div>
-
-              <div className="space-y-3 text-xs">
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-400">PISTA</span>
-                  <div className="flex gap-1 font-mono">
-                    <select 
-                      value={runway} 
-                      onChange={e => setRunway(e.target.value)}
-                      className="bg-[#090d14] border border-cyan-500/50 text-cyan-400 px-2 py-1 rounded font-bold outline-none cursor-pointer"
-                    >
-                      <option value="36L">36L (4,179m)</option>
-                      <option value="36R">36R (4,350m)</option>
-                      <option value="18L">18L (3,700m)</option>
-                    </select>
+          {/* PESTAÑA 1: PERF TAKEOFF */}
+          {activeTab === 'takeoff' && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 h-full">
+              <section className="bg-[#111622] border border-slate-800 rounded-xl p-3 flex flex-col justify-between">
+                <div>
+                  <div className="flex justify-between items-center border-b border-slate-800 pb-2 mb-3">
+                    <span className="text-xs font-bold text-cyan-400 tracking-wider">ENTORNO Y CONFIGURACIÓN</span>
+                    <span className="text-[10px] font-mono text-slate-500">{airport} / {runway}</span>
                   </div>
-                </div>
 
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-400">ESTADO PISTA</span>
-                  <select 
-                    value={runwayCondition} 
-                    onChange={e => setRunwayCondition(e.target.value)}
-                    className="bg-[#090d14] border border-slate-700 text-emerald-400 font-mono px-2 py-1 rounded font-bold outline-none cursor-pointer"
-                  >
-                    <option value="DRY">DRY / CLEAN</option>
-                    <option value="WET">WET / GOOD</option>
-                    <option value="CONTAMINATED">STANDING WATER</option>
-                  </select>
-                </div>
+                  <div className="space-y-3 text-xs">
+                    <div className="flex justify-between items-center">
+                      <span className="text-slate-400">PISTA</span>
+                      <select 
+                        value={runway} 
+                        onChange={e => setRunway(e.target.value)}
+                        className="bg-[#090d14] border border-cyan-500/50 text-cyan-400 px-2 py-1 rounded font-bold outline-none cursor-pointer font-mono"
+                      >
+                        <option value="36L">36L (4,179m)</option>
+                        <option value="36R">36R (4,350m)</option>
+                        <option value="18L">18L (3,700m)</option>
+                      </select>
+                    </div>
 
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-400">VIENTO (° / KT)</span>
-                  <div className="flex gap-1 font-mono items-center">
-                    <input 
-                      type="number" 
-                      value={windDirection} 
-                      onChange={e => setWindDirection(Number(e.target.value))}
-                      className="w-12 bg-[#090d14] border border-slate-700 text-white text-center rounded py-0.5 font-bold outline-none"
-                    />
-                    <span className="text-slate-600">/</span>
-                    <input 
-                      type="number" 
-                      value={windSpeed} 
-                      onChange={e => setWindSpeed(Number(e.target.value))}
-                      className="w-12 bg-[#090d14] border border-slate-700 text-white text-center rounded py-0.5 font-bold outline-none"
-                    />
-                  </div>
-                </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-slate-400">ESTADO PISTA</span>
+                      <select 
+                        value={runwayCondition} 
+                        onChange={e => setRunwayCondition(e.target.value)}
+                        className="bg-[#090d14] border border-slate-700 text-emerald-400 font-mono px-2 py-1 rounded font-bold outline-none cursor-pointer"
+                      >
+                        <option value="DRY">DRY / CLEAN</option>
+                        <option value="WET">WET / GOOD</option>
+                        <option value="CONTAMINATED">STANDING WATER</option>
+                      </select>
+                    </div>
 
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-400">OAT (°C) / QNH (hPa)</span>
-                  <div className="flex gap-1 font-mono">
-                    <input 
-                      type="number" 
-                      value={oat} 
-                      onChange={e => setOat(Number(e.target.value))}
-                      className="w-12 bg-[#090d14] border border-slate-700 text-white text-center rounded py-0.5 font-bold outline-none"
-                    />
-                    <input 
-                      type="number" 
-                      value={qnh} 
-                      onChange={e => setQnh(Number(e.target.value))}
-                      className="w-14 bg-[#090d14] border border-slate-700 text-white text-center rounded py-0.5 font-bold outline-none"
-                    />
-                  </div>
-                </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-slate-400">VIENTO (° / KT)</span>
+                      <div className="flex gap-1 font-mono items-center">
+                        <input 
+                          type="number" 
+                          value={windDirection} 
+                          onChange={e => setWindDirection(Number(e.target.value))}
+                          className="w-12 bg-[#090d14] border border-slate-700 text-white text-center rounded py-0.5 font-bold outline-none"
+                        />
+                        <span className="text-slate-600">/</span>
+                        <input 
+                          type="number" 
+                          value={windSpeed} 
+                          onChange={e => setWindSpeed(Number(e.target.value))}
+                          className="w-12 bg-[#090d14] border border-slate-700 text-white text-center rounded py-0.5 font-bold outline-none"
+                        />
+                      </div>
+                    </div>
 
-                <div className="border-t border-slate-800/80 my-2 pt-2"></div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-slate-400">OAT (°C) / QNH (hPa)</span>
+                      <div className="flex gap-1 font-mono">
+                        <input 
+                          type="number" 
+                          value={oat} 
+                          onChange={e => setOat(Number(e.target.value))}
+                          className="w-12 bg-[#090d14] border border-slate-700 text-white text-center rounded py-0.5 font-bold outline-none"
+                        />
+                        <input 
+                          type="number" 
+                          value={qnh} 
+                          onChange={e => setQnh(Number(e.target.value))}
+                          className="w-14 bg-[#090d14] border border-slate-700 text-white text-center rounded py-0.5 font-bold outline-none"
+                        />
+                      </div>
+                    </div>
 
-                <div className="space-y-1">
-                  <div className="flex justify-between items-center">
-                    <span className="text-slate-300 font-bold">TAKEOFF WEIGHT (TOW)</span>
-                    <div className="flex items-center gap-1 font-mono">
+                    <div className="border-t border-slate-800/80 my-2 pt-2"></div>
+
+                    <div className="space-y-1">
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-300 font-bold">TAKEOFF WEIGHT (TOW)</span>
+                        <span className="text-amber-400 font-mono font-bold text-sm">{tow} TONS</span>
+                      </div>
                       <input 
-                        type="number" 
+                        type="range" 
+                        min="52" 
+                        max="77" 
                         step="0.1" 
                         value={tow} 
                         onChange={e => setTow(Number(e.target.value))}
-                        className="w-16 bg-[#090d14] border border-amber-500/60 text-amber-400 text-center rounded py-0.5 font-bold text-sm outline-none"
+                        className="w-full accent-amber-500 h-1 bg-slate-800 rounded cursor-pointer"
                       />
-                      <span className="text-slate-500 text-xs">TONS</span>
+                    </div>
+
+                    <div className="flex justify-between items-center">
+                      <span className="text-slate-400">CONFIG FLAPS</span>
+                      <div className="flex gap-1">
+                        {['CONF 1+F', 'CONF 2', 'CONF 3'].map(f => (
+                          <button
+                            key={f}
+                            onClick={() => setFlaps(f)}
+                            className={`text-[10px] font-mono font-bold px-2 py-1 rounded transition ${
+                              flaps === f 
+                                ? 'bg-cyan-500/20 border border-cyan-400 text-cyan-400' 
+                                : 'bg-[#090d14] border border-slate-800 text-slate-500 hover:text-slate-300'
+                            }`}
+                          >
+                            {f}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </div>
-                  <input 
-                    type="range" 
-                    min="52" 
-                    max="77" 
-                    step="0.1" 
-                    value={tow} 
-                    onChange={e => setTow(Number(e.target.value))}
-                    className="w-full accent-amber-500 h-1 bg-slate-800 rounded cursor-pointer"
-                  />
+                </div>
+              </section>
+
+              <section className="bg-[#111622] border border-slate-800 rounded-xl p-3 flex flex-col justify-between">
+                <div>
+                  <div className="flex justify-between items-center border-b border-slate-800 pb-2 mb-3">
+                    <span className="text-xs font-bold text-emerald-400 tracking-wider">PRESTACIONES & VELOCIDADES</span>
+                    <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/30">
+                      COMPUTED ✓
+                    </span>
+                  </div>
+
+                  <div className="bg-gradient-to-br from-emerald-950/40 to-slate-900 border border-emerald-500/50 rounded-lg p-3 text-center mb-3 shadow-inner">
+                    <span className="text-[10px] text-emerald-300 font-bold tracking-wider uppercase">EMPUJE DE DESPEGUE (THRUST)</span>
+                    <div className="text-3xl font-mono font-black text-emerald-400 tracking-tight my-0.5">
+                      FLEX {flexTemp}°C
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2 mb-3">
+                    <div className="bg-[#090d14] border border-cyan-500/40 rounded-lg p-2 text-center shadow-lg">
+                      <span className="text-[10px] font-bold text-slate-400 block">V1</span>
+                      <span className="text-2xl font-mono font-black text-cyan-400 leading-none">{v1}</span>
+                      <span className="text-[8px] text-slate-500 block mt-1">KNOTS</span>
+                    </div>
+                    <div className="bg-[#090d14] border border-cyan-500/40 rounded-lg p-2 text-center shadow-lg">
+                      <span className="text-[10px] font-bold text-slate-400 block">VR</span>
+                      <span className="text-2xl font-mono font-black text-cyan-400 leading-none">{vr}</span>
+                      <span className="text-[8px] text-slate-500 block mt-1">KNOTS</span>
+                    </div>
+                    <div className="bg-[#090d14] border border-cyan-500/40 rounded-lg p-2 text-center shadow-lg">
+                      <span className="text-[10px] font-bold text-slate-400 block">V2</span>
+                      <span className="text-2xl font-mono font-black text-cyan-400 leading-none">{v2}</span>
+                      <span className="text-[8px] text-slate-500 block mt-1">KNOTS</span>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-400">CONFIG FLAPS</span>
-                  <div className="flex gap-1">
-                    {['CONF 1+F', 'CONF 2', 'CONF 3'].map(f => (
-                      <button
-                        key={f}
-                        onClick={() => setFlaps(f)}
-                        className={`text-[10px] font-mono font-bold px-2 py-1 rounded transition ${
-                          flaps === f 
-                            ? 'bg-cyan-500/20 border border-cyan-400 text-cyan-400' 
-                            : 'bg-[#090d14] border border-slate-800 text-slate-500 hover:text-slate-300'
-                        }`}
-                      >
-                        {f}
-                      </button>
+                <button 
+                  onClick={() => {
+                    setMcduSent(true);
+                    setTimeout(() => setMcduSent(false), 3000);
+                  }}
+                  className={`w-full text-slate-950 font-black text-xs py-3 rounded-lg tracking-wider uppercase shadow-lg transition-all flex items-center justify-center gap-2 ${
+                    mcduSent ? 'bg-emerald-400' : 'bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-300'
+                  }`}
+                >
+                  {mcduSent ? '✓ ENVIADO A MCDU' : 'ENVIAR A MCDU PRESET'}
+                </button>
+              </section>
+
+              <section className="bg-[#111622] border border-slate-800 rounded-xl p-3">
+                <span className="text-xs font-bold text-amber-400 tracking-wider block mb-3 border-b border-slate-800 pb-2">GRÁFICO DE PISTA Y MARGEN</span>
+                <div className="bg-[#090d14] border border-slate-800 rounded-lg p-3 text-center">
+                  <span className="text-xs font-mono text-emerald-400 block mb-2">MARGEN DE FRENADO: +{stopMargin} M</span>
+                  <div className="w-full bg-slate-800 h-6 rounded flex items-center px-2 relative">
+                    <div className="h-2 bg-emerald-500 rounded" style={{ width: `${Math.min(100, (stopMargin / 2000) * 100)}%` }}></div>
+                  </div>
+                </div>
+              </section>
+            </div>
+          )}
+
+          {/* PESTAÑA 2: PERF LANDING */}
+          {activeTab === 'landing' && (
+            <div className="bg-[#111622] border border-slate-800 rounded-xl p-4 space-y-4">
+              <h2 className="text-sm font-bold text-cyan-400 tracking-wider border-b border-slate-800 pb-2">CÁLCULO DE ATERRIZAJE (PERF LANDING)</h2>
+              <div className="grid grid-cols-2 gap-4 text-xs">
+                <div className="space-y-2">
+                  <label className="text-slate-400 block">PESO AL ATERRIZAJE (ESTIMATED LW):</label>
+                  <input type="number" defaultValue={60.5} className="bg-[#090d14] border border-slate-700 text-white font-mono px-2 py-1 rounded w-full" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-slate-400 block">AUTOBRAKE:</label>
+                  <select className="bg-[#090d14] border border-slate-700 text-cyan-400 font-mono px-2 py-1 rounded w-full">
+                    <option>LOW</option>
+                    <option>MEDIUM</option>
+                    <option>MAX</option>
+                  </select>
+                </div>
+              </div>
+              <div className="bg-[#090d14] border border-emerald-500/30 p-4 rounded-lg text-center">
+                <span className="text-xs text-slate-400 block">DISTANCIA DE PARADA REQUERIDA (RLD)</span>
+                <span className="text-3xl font-mono font-bold text-emerald-400">1,480 M</span>
+                <span className="text-xs text-slate-500 block mt-1">PISTA DISPONIBLE: 4,179 M (MARGEN: +2,699 M)</span>
+              </div>
+            </div>
+          )}
+
+          {/* PESTAÑA 3: LOAD & FUEL */}
+          {activeTab === 'load' && (
+            <div className="bg-[#111622] border border-slate-800 rounded-xl p-4 space-y-4">
+              <h2 className="text-sm font-bold text-amber-400 tracking-wider border-b border-slate-800 pb-2">HOJA DE CARGA Y COMBUSTIBLE</h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                <div className="space-y-2 bg-[#090d14] p-3 rounded-lg border border-slate-800">
+                  <span className="text-slate-400 block font-bold">PASAJEROS:</span>
+                  <input type="number" value={paxCount} onChange={e => setPaxCount(Number(e.target.value))} className="bg-[#111622] border border-slate-700 text-cyan-400 font-mono px-2 py-1 rounded w-full text-lg" />
+                  <span className="text-slate-500 text-[10px] block">150 / 180 PAX</span>
+                </div>
+                <div className="space-y-2 bg-[#090d14] p-3 rounded-lg border border-slate-800">
+                  <span className="text-slate-400 block font-bold">CARGA / CARGO (TONS):</span>
+                  <input type="number" step="0.1" value={cargoWeight} onChange={e => setCargoWeight(Number(e.target.value))} className="bg-[#111622] border border-slate-700 text-cyan-400 font-mono px-2 py-1 rounded w-full text-lg" />
+                </div>
+                <div className="space-y-2 bg-[#090d14] p-3 rounded-lg border border-slate-800">
+                  <span className="text-slate-400 block font-bold">BLOCK FUEL (TONS):</span>
+                  <input type="number" step="0.1" value={blockFuel} onChange={e => setBlockFuel(Number(e.target.value))} className="bg-[#111622] border border-slate-700 text-amber-400 font-mono px-2 py-1 rounded w-full text-lg" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4 font-mono text-center">
+                <div className="bg-[#090d14] p-3 rounded border border-slate-800">
+                  <span className="text-slate-500 text-xs block">ZERO FUEL WEIGHT (ZFW)</span>
+                  <span className="text-2xl font-bold text-white">{zfw} T</span>
+                </div>
+                <div className="bg-[#090d14] p-3 rounded border border-slate-800">
+                  <span className="text-slate-500 text-xs block">CALCULATED TOW</span>
+                  <span className="text-2xl font-bold text-amber-400">{calculatedTOW} T</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* PESTAÑA 4: CHECKLISTS INTERACTIVAS */}
+          {activeTab === 'checklists' && (
+            <div className="bg-[#111622] border border-slate-800 rounded-xl p-4 space-y-4">
+              <h2 className="text-sm font-bold text-cyan-400 tracking-wider border-b border-slate-800 pb-2">LISTAS DE COMPROBACIÓN OPERATIVAS</h2>
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-xs font-bold text-amber-400 mb-2 font-mono">BEFORE START CHECKLIST</h3>
+                  <div className="space-y-1">
+                    {checklists.beforeStart.map(item => (
+                      <div key={item.id} onClick={() => toggleChecklist('beforeStart', item.id)} className={`p-2 rounded border text-xs font-mono flex justify-between items-center cursor-pointer ${item.checked ? 'bg-emerald-950/30 border-emerald-500/50 text-emerald-400' : 'bg-[#090d14] border-slate-800 text-slate-300'}`}>
+                        <span>{item.text}</span>
+                        <CheckSquare className={`w-4 h-4 ${item.checked ? 'text-emerald-400' : 'text-slate-600'}`} />
+                      </div>
                     ))}
                   </div>
                 </div>
-
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-400">AIR COND / PACKS</span>
-                  <button 
-                    onClick={() => setPacks(packs === 'OFF' ? 'ON' : 'OFF')}
-                    className={`font-mono text-xs font-bold px-3 py-0.5 rounded border ${
-                      packs === 'OFF' ? 'bg-[#090d14] border-emerald-500/50 text-emerald-400' : 'bg-amber-500/20 border-amber-500 text-amber-400'
-                    }`}
-                  >
-                    {packs}
-                  </button>
-                </div>
               </div>
             </div>
+          )}
 
-            <div className="text-[10px] text-slate-500 font-mono text-center pt-2 border-t border-slate-800 mt-4">
-              BASE DE DATOS OPERATIVA: REV 2026.08
+          {/* PESTAÑA 5: CHARTS & MAPS */}
+          {activeTab === 'charts' && (
+            <div className="bg-[#111622] border border-slate-800 rounded-xl p-4 h-full flex flex-col items-center justify-center text-center">
+              <Map className="w-12 h-12 text-cyan-400 animate-pulse mb-3" />
+              <h2 className="text-sm font-bold text-slate-200">VISOR DE CARTAS DE NAVEGACIÓN</h2>
+              <p className="text-xs text-slate-500 max-w-sm mt-1">Sincronizado con base de datos Jeppesen / Lido para LEMD - EGLL.</p>
             </div>
-          </section>
+          )}
 
-          <section className="bg-[#111622] border border-slate-800 rounded-xl p-3 flex flex-col justify-between">
-            <div>
-              <div className="flex justify-between items-center border-b border-slate-800 pb-2 mb-3">
-                <span className="text-xs font-bold text-emerald-400 tracking-wider">PRESTACIONES & VELOCIDADES</span>
-                <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/30">
-                  COMPUTED ✓
-                </span>
-              </div>
-
-              <div className="bg-gradient-to-br from-emerald-950/40 to-slate-900 border border-emerald-500/50 rounded-lg p-3 text-center mb-3 shadow-inner">
-                <span className="text-[10px] text-emerald-300 font-bold tracking-wider uppercase">EMPUJE DE DESPEGUE (THRUST)</span>
-                <div className="text-3xl font-mono font-black text-emerald-400 tracking-tight my-0.5">
-                  FLEX {flexTemp}°C
-                </div>
-                <div className="text-[10px] text-slate-400 font-mono">
-                  TARGET N1: {(86.0 + (flexTemp * 0.05)).toFixed(1)}% | TOGA: 68°C
-                </div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-2 mb-3">
-                <div className="bg-[#090d14] border border-cyan-500/40 rounded-lg p-2 text-center shadow-lg">
-                  <span className="text-[10px] font-bold text-slate-400 block">V1</span>
-                  <span className="text-2xl font-mono font-black text-cyan-400 leading-none">{v1}</span>
-                  <span className="text-[8px] text-slate-500 block mt-1">KNOTS</span>
-                </div>
-                <div className="bg-[#090d14] border border-cyan-500/40 rounded-lg p-2 text-center shadow-lg">
-                  <span className="text-[10px] font-bold text-slate-400 block">VR</span>
-                  <span className="text-2xl font-mono font-black text-cyan-400 leading-none">{vr}</span>
-                  <span className="text-[8px] text-slate-500 block mt-1">KNOTS</span>
-                </div>
-                <div className="bg-[#090d14] border border-cyan-500/40 rounded-lg p-2 text-center shadow-lg">
-                  <span className="text-[10px] font-bold text-slate-400 block">V2</span>
-                  <span className="text-2xl font-mono font-black text-cyan-400 leading-none">{v2}</span>
-                  <span className="text-[8px] text-slate-500 block mt-1">KNOTS</span>
-                </div>
-              </div>
-
-              <div className="bg-[#090d14] p-2.5 rounded-lg border border-slate-800 space-y-2 text-xs font-mono">
-                <div className="flex justify-between">
-                  <span className="text-slate-500">PITCH TRIM:</span>
-                  <span className="text-cyan-400 font-bold">{pitchTrim} / {cgPercent}%</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">ENG OUT ACC ALT:</span>
-                  <span className="text-white font-bold">1500 FT AGL</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">STOP MARGIN:</span>
-                  <span className={`font-bold ${stopMargin < 500 ? 'text-amber-400' : 'text-emerald-400'}`}>
-                    +{stopMargin.toLocaleString()} M
-                  </span>
-                </div>
+          {/* PESTAÑA 6: FCOM / MEL */}
+          {activeTab === 'docs' && (
+            <div className="bg-[#111622] border border-slate-800 rounded-xl p-4 space-y-4">
+              <h2 className="text-sm font-bold text-cyan-400 tracking-wider border-b border-slate-800 pb-2">DOCUMENTACIÓN TÉCNICA (FCOM / MEL)</h2>
+              <div className="relative">
+                <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-500" />
+                <input 
+                  type="text" 
+                  placeholder="Buscar en FCOM, QRH o MEL..." 
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  className="w-full bg-[#090d14] border border-slate-700 rounded-lg pl-9 pr-3 py-2 text-xs text-white outline-none"
+                />
               </div>
             </div>
-
-            <button 
-              onClick={handleMCDUSync}
-              className={`w-full text-slate-950 font-black text-xs py-3 rounded-lg tracking-wider uppercase shadow-lg transition-all flex items-center justify-center gap-2 mt-4 ${
-                mcduSent 
-                  ? 'bg-emerald-400 shadow-emerald-500/20' 
-                  : 'bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 shadow-cyan-500/20 active:scale-[0.98]'
-              }`}
-            >
-              {mcduSent ? (
-                <>
-                  <CheckCircle2 className="w-4 h-4 text-slate-950" /> SENT TO MCDU PRESET
-                </>
-              ) : (
-                <>
-                  <Send className="w-4 h-4 text-slate-950" /> SEND DATA TO MCDU PRESET
-                </>
-              )}
-            </button>
-          </section>
-
-          <section className="bg-[#111622] border border-slate-800 rounded-xl p-3 flex flex-col justify-between">
-            <div>
-              <div className="flex justify-between items-center border-b border-slate-800 pb-2 mb-3">
-                <span className="text-xs font-bold text-amber-400 tracking-wider">VISUALIZACIÓN DE PISTA Y CG</span>
-                <span className="text-[10px] font-mono text-slate-500">RUNWAY {runway}</span>
-              </div>
-
-              <div className="bg-[#090d14] border border-slate-800 rounded-lg p-2 text-center mb-3">
-                <span className="text-[9px] text-slate-500 font-mono block mb-1">MARGEN DE FRENADO Y DESPEGUE</span>
-                <svg width="100%" height="70" viewBox="0 0 220 70">
-                  <rect x="10" y="20" width="200" height="30" fill="#18202f" stroke="#334155" strokeWidth="1" rx="2" />
-                  <line x1="15" y1="35" x2="205" y2="35" stroke="#64748b" strokeWidth="1.5" strokeDasharray="6,4" />
-                  <line x1="20" y1="23" x2="20" y2="47" stroke="#ffffff" strokeWidth="3" />
-                  <line x1="200" y1="23" x2="200" y2="47" stroke="#ffffff" strokeWidth="3" />
-                  <text x="30" y="39" fill="#00e5ff" fontSize="9" fontFamily="monospace" fontWeight="bold">{runway}</text>
-                  
-                  <polygon points="55,35 45,30 45,40" fill="#f59e0b" />
-                  
-                  <line x1="130" y1="12" x2="200" y2="12" stroke="#10b981" strokeWidth="1.5" />
-                  <line x1="130" y1="10" x2="130" y2="14" stroke="#10b981" strokeWidth="1.5" />
-                  <line x1="200" y1="10" x2="200" y2="14" stroke="#10b981" strokeWidth="1.5" />
-                  <text x="165" y="8" fill="#10b981" fontSize="7" fontFamily="monospace" textAnchor="middle" fontWeight="bold">
-                    STOP MARGIN +{stopMargin}M
-                  </text>
-                </svg>
-              </div>
-
-              <div className="bg-[#090d14] border border-slate-800 rounded-lg p-2 text-center">
-                <span className="text-[9px] text-slate-500 font-mono block mb-1">ENVOLVENTE DE CENTRO DE GRAVEDAD (% MAC)</span>
-                <svg width="100%" height="95" viewBox="0 0 220 95">
-                  <line x1="25" y1="10" x2="25" y2="80" stroke="#334155" strokeWidth="1" />
-                  <line x1="25" y1="80" x2="205" y2="80" stroke="#334155" strokeWidth="1" />
-                  
-                  <polygon points="45,80 45,40 75,15 185,15 185,80" fill="rgba(0,229,255,0.08)" stroke="#00e5ff" strokeWidth="1.5" />
-                  
-                  {(() => {
-                    const cy = Math.max(20, Math.min(75, 75 - ((tow - 52) / (77 - 52)) * 55));
-                    const cx = Math.max(45, Math.min(185, 45 + ((cgPercent - 15) / (40 - 15)) * 140));
-                    return (
-                      <g>
-                        <circle cx={cx} cy={cy} r="4" fill="#f59e0b" className="transition-all duration-300" />
-                        <circle cx={cx} cy={cy} r="8" fill="none" stroke="#f59e0b" strokeWidth="1" className="animate-ping" />
-                        <text x={cx + 8} y={cy + 3} fill="#f59e0b" fontSize="8" fontFamily="monospace" fontWeight="bold">
-                          TOW {tow}T ({cgPercent}%)
-                        </text>
-                      </g>
-                    );
-                  })()}
-                </svg>
-              </div>
-            </div>
-
-            <div className="text-[9px] text-emerald-400 font-mono text-center pt-2 border-t border-slate-800 flex items-center justify-center gap-1">
-              <ShieldCheck className="w-3.5 h-3.5" /> DENTRO DE LÍMITES CERTIFICADOS DE CG
-            </div>
-          </section>
+          )}
 
         </main>
       </div>
