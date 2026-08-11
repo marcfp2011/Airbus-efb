@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-// ==========================================
-// BASE DE DATOS DE AEROPUERTOS
-// ==========================================
+// Base de datos de cartas aeronáuticas
 const AIRPORT_DATABASE = {
   LEMD: {
     title: "AIRBUS EFB NAV - AIRPORT CHARTS & INFO",
@@ -101,9 +99,6 @@ const AIRPORT_DATABASE = {
   }
 };
 
-// ==========================================
-// COMPONENTE VISOR DE CARTAS Y MAPAS
-// ==========================================
 function AirportChartsView() {
   const [selectedIcao, setSelectedIcao] = useState('LEMD');
   const canvasRef = useRef(null);
@@ -155,7 +150,6 @@ function AirportChartsView() {
     ctx.lineTo(570, 88);
     ctx.stroke();
 
-    // Card Gates
     ctx.fillStyle = CARD_BG;
     ctx.strokeStyle = CARD_BORDER;
     ctx.lineWidth = 1;
@@ -178,7 +172,6 @@ function AirportChartsView() {
       yPos += 36;
     });
 
-    // Card Frecuencias
     ctx.fillStyle = CARD_BG;
     ctx.fillRect(310, 100, 260, 270);
     ctx.strokeRect(310, 100, 260, 270);
@@ -198,7 +191,6 @@ function AirportChartsView() {
       yPos += 34;
     });
 
-    // Card Diagrama Mapa
     ctx.fillStyle = CARD_BG;
     ctx.fillRect(30, 384, 540, 426);
     ctx.strokeRect(30, 384, 540, 426);
@@ -220,7 +212,6 @@ function AirportChartsView() {
       ctx.fillText(line, 50, 705 + idx * 15);
     });
 
-    // Pistas
     config.runways.forEach(rwy => {
       const [p1, p2] = rwy.coords;
       const x1 = mapX(p1[0]), y1 = mapY(p1[1]);
@@ -249,7 +240,6 @@ function AirportChartsView() {
       ctx.fillText(rwy.label2, mapX(rwy.pos2[0]), mapY(rwy.pos2[1]));
     });
 
-    // Edificios
     config.buildings.forEach(b => {
       ctx.fillStyle = b.color;
       ctx.strokeStyle = b.border;
@@ -316,9 +306,6 @@ function AirportChartsView() {
   );
 }
 
-// ==========================================
-// COMPONENTE PRINCIPAL APP
-// ==========================================
 export default function App() {
   const [activeTab, setActiveTab] = useState('flightplan');
 
@@ -357,14 +344,13 @@ export default function App() {
   };
 
   const passengerWeight = paxCount * 84;
-  const totalPayload = passengerWeight + Number(cargoKg);
+  const totalPayload = passengerWeight + Number(cargoKg || 0);
   const dryOperatingWeight = 42500;
   const zeroFuelWeight = dryOperatingWeight + totalPayload;
 
   return (
     <div style={{ backgroundColor: '#030712', minHeight: '100vh', color: '#f8fafc', fontFamily: 'sans-serif' }}>
       
-      {/* NAVEGACIÓN */}
       <header style={{ backgroundColor: '#0f172a', borderBottom: '1px solid #1e293b', padding: '15px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
         <h1 style={{ margin: 0, fontSize: '20px', color: '#38bdf8', letterSpacing: '1px' }}>✈ AIRBUS EFB SUITE</h1>
         <nav style={{ display: 'flex', gap: '8px' }}>
@@ -375,7 +361,6 @@ export default function App() {
         </nav>
       </header>
 
-      {/* VISTAS */}
       <main style={{ padding: '25px', maxWidth: '900px', margin: '0 auto' }}>
         {activeTab === 'flightplan' && (
           <div style={{ backgroundColor: '#0f172a', padding: '20px', borderRadius: '10px', border: '1px solid #1e293b' }}>
