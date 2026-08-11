@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 
 // ==========================================
-// BASE DE DATOS DE AEROPUERTOS PARA CARTAS
+// BASE DE DATOS DE AEROPUERTOS
 // ==========================================
 const AIRPORT_DATABASE = {
   LEMD: {
@@ -113,6 +113,7 @@ function AirportChartsView() {
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     const config = AIRPORT_DATABASE[selectedIcao];
+    if (!config) return;
 
     const W = 600;
     const H = 840;
@@ -316,12 +317,11 @@ function AirportChartsView() {
 }
 
 // ==========================================
-// COMPONENTE PRINCIPAL APP (Navegación + Pestañas)
+// COMPONENTE PRINCIPAL APP
 // ==========================================
 export default function App() {
   const [activeTab, setActiveTab] = useState('flightplan');
 
-  // Estado de Plan de Vuelo
   const [flightData, setFlightData] = useState({
     callsign: 'IBE3102',
     dep: 'LEMD',
@@ -331,11 +331,9 @@ export default function App() {
     route: 'PINOT UN871 BARSO DCT'
   });
 
-  // Estado de Payload / Peso
   const [paxCount, setPaxCount] = useState(150);
   const [cargoKg, setCargoKg] = useState(2500);
 
-  // Creador de Checklists interactivo
   const [checklists, setChecklists] = useState({
     beforeStart: [
       { id: 1, text: "Cockpit Prep — COMPLETED", checked: false },
@@ -358,53 +356,27 @@ export default function App() {
     }));
   };
 
-  const calculateWeights = () => {
-    const passengerWeight = paxCount * 84;
-    const totalPayload = passengerWeight + Number(cargoKg);
-    const dryOperatingWeight = 42500;
-    const zeroFuelWeight = dryOperatingWeight + totalPayload;
-    return { passengerWeight, totalPayload, zeroFuelWeight };
-  };
-
-  const weights = calculateWeights();
+  const passengerWeight = paxCount * 84;
+  const totalPayload = passengerWeight + Number(cargoKg);
+  const dryOperatingWeight = 42500;
+  const zeroFuelWeight = dryOperatingWeight + totalPayload;
 
   return (
     <div style={{ backgroundColor: '#030712', minHeight: '100vh', color: '#f8fafc', fontFamily: 'sans-serif' }}>
       
-      {/* BARRA SUPERIOR DE NAVEGACIÓN */}
+      {/* NAVEGACIÓN */}
       <header style={{ backgroundColor: '#0f172a', borderBottom: '1px solid #1e293b', padding: '15px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
         <h1 style={{ margin: 0, fontSize: '20px', color: '#38bdf8', letterSpacing: '1px' }}>✈ AIRBUS EFB SUITE</h1>
         <nav style={{ display: 'flex', gap: '8px' }}>
-          {[
-            { id: 'flightplan', label: 'Plan de Vuelo' },
-            { id: 'payload', label: 'Carga & Peso' },
-            { id: 'charts', label: 'Cartas y Mapas' },
-            { id: 'checklist', label: 'Checklists' }
-          ].map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              style={{
-                padding: '8px 16px',
-                backgroundColor: activeTab === tab.id ? '#0284c7' : '#1e293b',
-                color: '#fff',
-                border: 'none',
-                borderRadius: '6px',
-                fontWeight: 'bold',
-                cursor: 'pointer',
-                transition: 'all 0.2s'
-              }}
-            >
-              {tab.label}
-            </button>
-          ))}
+          <button onClick={() => setActiveTab('flightplan')} style={{ padding: '8px 16px', backgroundColor: activeTab === 'flightplan' ? '#0284c7' : '#1e293b', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>Plan de Vuelo</button>
+          <button onClick={() => setActiveTab('payload')} style={{ padding: '8px 16px', backgroundColor: activeTab === 'payload' ? '#0284c7' : '#1e293b', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>Carga & Peso</button>
+          <button onClick={() => setActiveTab('charts')} style={{ padding: '8px 16px', backgroundColor: activeTab === 'charts' ? '#0284c7' : '#1e293b', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>Cartas y Mapas</button>
+          <button onClick={() => setActiveTab('checklist')} style={{ padding: '8px 16px', backgroundColor: activeTab === 'checklist' ? '#0284c7' : '#1e293b', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>Checklists</button>
         </nav>
       </header>
 
-      {/* CONTENIDO PRINCIPAL POR PESTAÑA */}
+      {/* VISTAS */}
       <main style={{ padding: '25px', maxWidth: '900px', margin: '0 auto' }}>
-        
-        {/* 1. PLAN DE VUELO */}
         {activeTab === 'flightplan' && (
           <div style={{ backgroundColor: '#0f172a', padding: '20px', borderRadius: '10px', border: '1px solid #1e293b' }}>
             <h2 style={{ marginTop: 0, color: '#f59e0b' }}>Operational Flight Plan (OFP)</h2>
@@ -433,7 +405,6 @@ export default function App() {
           </div>
         )}
 
-        {/* 2. CARGA Y PESO */}
         {activeTab === 'payload' && (
           <div style={{ backgroundColor: '#0f172a', padding: '20px', borderRadius: '10px', border: '1px solid #1e293b' }}>
             <h2 style={{ marginTop: 0, color: '#f59e0b' }}>Calculadora de Peso & Balance (A320)</h2>
@@ -448,14 +419,13 @@ export default function App() {
               </div>
             </div>
             <div style={{ backgroundColor: '#1e293b', padding: '15px', borderRadius: '8px', fontFamily: 'monospace' }}>
-              <p style={{ margin: '5px 0' }}>PESO PASAJEROS: <span style={{ color: '#38bdf8' }}>{weights.passengerWeight} kg</span></p>
-              <p style={{ margin: '5px 0' }}>PAYLOAD TOTAL: <span style={{ color: '#38bdf8' }}>{weights.totalPayload} kg</span></p>
-              <p style={{ margin: '5px 0', fontSize: '16px', fontWeight: 'bold' }}>ZFW ESTANCIADO: <span style={{ color: weights.zeroFuelWeight > 62500 ? '#ef4444' : '#10b981' }}>{weights.zeroFuelWeight} kg</span> (Máx 62,500kg)</p>
+              <p style={{ margin: '5px 0' }}>PESO PASAJEROS: <span style={{ color: '#38bdf8' }}>{passengerWeight} kg</span></p>
+              <p style={{ margin: '5px 0' }}>PAYLOAD TOTAL: <span style={{ color: '#38bdf8' }}>{totalPayload} kg</span></p>
+              <p style={{ margin: '5px 0', fontSize: '16px', fontWeight: 'bold' }}>ZFW ESTIMADO: <span style={{ color: zeroFuelWeight > 62500 ? '#ef4444' : '#10b981' }}>{zeroFuelWeight} kg</span> (Máx 62,500kg)</p>
             </div>
           </div>
         )}
 
-        {/* 3. CARTAS Y MAPAS */}
         {activeTab === 'charts' && (
           <div>
             <h2 style={{ textAlign: 'center', color: '#38bdf8', marginTop: 0 }}>Cartas y Mapas de Navegación</h2>
@@ -463,11 +433,9 @@ export default function App() {
           </div>
         )}
 
-        {/* 4. CHECKLISTS */}
         {activeTab === 'checklist' && (
           <div style={{ backgroundColor: '#0f172a', padding: '20px', borderRadius: '10px', border: '1px solid #1e293b' }}>
             <h2 style={{ marginTop: 0, color: '#f59e0b' }}>Airbus A320 Normal Checklists</h2>
-            
             <h3 style={{ color: '#38bdf8', fontSize: '16px' }}>BEFORE START</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px' }}>
               {checklists.beforeStart.map(item => (
@@ -489,7 +457,6 @@ export default function App() {
             </div>
           </div>
         )}
-
       </main>
     </div>
   );
