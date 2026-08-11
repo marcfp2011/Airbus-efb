@@ -1,9 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Plane, Wifi, BatteryCharging, Gauge, ArrowRight, 
-  ShieldCheck, FileText, Map, Settings, AlertTriangle, 
-  CheckCircle2, RefreshCw, Send, CheckSquare, Search, Fuel,
-  Compass, ExternalLink
+  BatteryCharging, CheckSquare, Search, Compass, ZoomIn, ZoomOut, Maximize2 
 } from 'lucide-react';
 
 export default function AirbusEFBApp() {
@@ -18,10 +15,10 @@ export default function AirbusEFBApp() {
     };
     updateTime();
     const timer = setInterval(updateTime, 1000);
-    return () => clearInterval(timer);
+    return () => flexTimer = clearInterval(timer);
   }, []);
 
-  // RUTA Y AEROPUERTOS (Salida y Destino)
+  // RUTA Y AEROPUERTOS
   const [origin, setOrigin] = useState('LEMD');
   const [destination, setDestination] = useState('EGLL');
 
@@ -35,7 +32,6 @@ export default function AirbusEFBApp() {
   const [tow, setTow] = useState(64.2);
   const [flaps, setFlaps] = useState('CONF 2');
 
-  // TAKEOFF Computed Values
   const [v1, setV1] = useState(142);
   const [vr, setVr] = useState(145);
   const [v2, setV2] = useState(149);
@@ -70,38 +66,89 @@ export default function AirbusEFBApp() {
   const zfw = (oew + (paxCount * 0.084) + cargoWeight).toFixed(1);
   const calculatedTOW = (parseFloat(zfw) + blockFuel).toFixed(1);
 
-  // CHECKLISTS COMPLETAS
-  const [activeChecklistTab, setActiveChecklistTab] = useState('beforeStart');
+  // CHECKLISTS COMPLETAS (14 FASES)
+  const [activeChecklistTab, setActiveChecklistTab] = useState('cockpitPreflight');
   const [checklists, setChecklists] = useState({
-    beforeStart: [
-      { id: 1, text: 'COCKPIT PREP .................... COMPLETED', checked: false },
-      { id: 2, text: 'GEAR PINS & COVERS ............. REMOVED', checked: false },
-      { id: 3, text: 'SIGNS .......................... ON / AUTO', checked: false },
-      { id: 4, text: 'ADIRS .......................... NAV', checked: false },
-      { id: 5, text: 'BARO REF ....................... SET', checked: false }
+    cockpitPreflight: [
+      { id: 1, text: 'GEAR PINS & COVERS ............. REMOVED & STOWED', checked: false },
+      { id: 2, text: 'BATTERIES ...................... CHECKED / AUTO', checked: false },
+      { id: 3, text: 'APU FIRE TEST .................. COMPLETED', checked: false },
+      { id: 4, text: 'APU ............................ START / ON', checked: false }
     ],
-    afterStart: [
-      { id: 6, text: 'ANTI ICE ....................... AS REQ', checked: false },
-      { id: 7, text: 'ECAM STATUS .................... CHECKED', checked: false },
-      { id: 8, text: 'PITCH TRIM ..................... SET', checked: false },
-      { id: 9, text: 'RUDDER TRIM .................... ZERO', checked: false }
+    cockpitPrep: [
+      { id: 5, text: 'HIGH VOLT / OXY ................ CHECKED', checked: false },
+      { id: 6, text: 'ADIRS .......................... NAV', checked: false },
+      { id: 7, text: 'EXT POWER ...................... AS REQ', checked: false },
+      { id: 8, text: 'COCKPIT LIGHTS ................. SET', checked: false }
+    ],
+    mcduSetUp: [
+      { id: 9, text: 'INIT A & B ..................... COMPLETED', checked: false },
+      { id: 10, text: 'FLIGHT PLAN .................... CHECKED', checked: false },
+      { id: 11, text: 'PERF DATA ...................... INSERTED', checked: false },
+      { id: 12, text: 'RAD NAV ........................ SET', checked: false }
+    ],
+    startupPrep: [
+      { id: 13, text: 'ATC CLEARANCE .................. OBTAINED', checked: false },
+      { id: 14, text: 'DOORS & SLIDES ................. CLOSED / ARMED', checked: false },
+      { id: 15, text: 'BEACON LIGHT ................... ON', checked: false },
+      { id: 16, text: 'THRUST LEVERS .................. IDLE', checked: false }
+    ],
+    startup: [
+      { id: 17, text: 'ENG MODE SEL ................... IGN / START', checked: false },
+      { id: 18, text: 'ENG 2 MASTER ................... ON', checked: false },
+      { id: 19, text: 'ENG 1 MASTER ................... ON', checked: false },
+      { id: 20, text: 'PARAMETER CHECK ................ NORMAL', checked: false }
+    ],
+    beforeTaxi: [
+      { id: 21, text: 'ENG MODE SEL ................... NORM', checked: false },
+      { id: 22, text: 'APU BLEED / APU ................ OFF', checked: false },
+      { id: 23, text: 'ANTI ICE ....................... AS REQ', checked: false },
+      { id: 24, text: 'FLAPS .......................... SET FOR T/O', checked: false },
+      { id: 25, text: 'PITCH / RUDDER TRIM ............ SET / ZERO', checked: false }
     ],
     beforeTakeoff: [
-      { id: 10, text: 'FLIGHT CONTROLS ................ CHECKED', checked: false },
-      { id: 11, text: 'FLAPS SETTING .................. T.O.', checked: false },
-      { id: 12, text: 'MCDU SETTING ................... CHECKED', checked: false },
-      { id: 13, text: 'TCAS ........................... TA/RA', checked: false }
+      { id: 26, text: 'FLIGHT CONTROLS ................ CHECKED', checked: false },
+      { id: 27, text: 'FLIGHT INSTRUMENTS ............. CHECKED', checked: false },
+      { id: 28, text: 'BRIEFING ....................... CONFIRMED', checked: false },
+      { id: 29, text: 'CABIN REPORT ................... READY', checked: false },
+      { id: 30, text: 'TCAS / RADAR ................... TA/RA / ON', checked: false }
+    ],
+    takeoff: [
+      { id: 31, text: 'RUNWAY IDENT ................... CONFIRMED', checked: false },
+      { id: 32, text: 'PACKS .......................... AS REQ', checked: false },
+      { id: 33, text: 'THRUST LEVERS .................. TOGA / FLEX', checked: false }
+    ],
+    afterTakeoff: [
+      { id: 34, text: 'LANDING GEAR ................... UP', checked: false },
+      { id: 35, text: 'FLAPS .......................... RETRACTED', checked: false },
+      { id: 36, text: 'PACKS .......................... ON', checked: false }
+    ],
+    climb: [
+      { id: 37, text: 'BARO REF (STD) ................. SET HIGH', checked: false },
+      { id: 38, text: 'ENG MODE SEL ................... NORM', checked: false },
+      { id: 39, text: 'TCAS ........................... TA/RA', checked: false }
+    ],
+    descent: [
+      { id: 40, text: 'PERF APPROACH .................. INSERTED', checked: false },
+      { id: 41, text: 'BARO REF ....................... SET LOCAL', checked: false },
+      { id: 42, text: 'MINIMUMS ....................... SET', checked: false }
     ],
     approach: [
-      { id: 14, text: 'BRIEFING ....................... CONFIRMED', checked: false },
-      { id: 15, text: 'ECAM STATUS .................... CHECKED', checked: false },
-      { id: 16, text: 'BARO REF ....................... SET', checked: false }
+      { id: 43, text: 'BRIEFING ....................... CONFIRMED', checked: false },
+      { id: 44, text: 'ECAM STATUS .................... CHECKED', checked: false },
+      { id: 45, text: 'SEAT BELTS ..................... ON', checked: false }
     ],
-    landing: [
-      { id: 17, text: 'CABIN REPORT ................... READY', checked: false },
-      { id: 18, text: 'A/BRK .......................... AS REQ', checked: false },
-      { id: 19, text: 'LANDING GEAR ................... DOWN', checked: false },
-      { id: 20, text: 'FLAPS .......................... FULL', checked: false }
+    afterLanding: [
+      { id: 46, text: 'FLAPS .......................... RETRACTED', checked: false },
+      { id: 47, text: 'SPOILERS ....................... DISARMED', checked: false },
+      { id: 48, text: 'APU ............................ START / ON', checked: false },
+      { id: 49, text: 'RADAR / TCAS ................... OFF / STBY', checked: false }
+    ],
+    shutdown: [
+      { id: 50, text: 'PARK BRK / CHOCKS .............. SET / IN', checked: false },
+      { id: 51, text: 'ENG MASTER 1 & 2 ............... OFF', checked: false },
+      { id: 52, text: 'PAX SIGNS ...................... OFF', checked: false },
+      { id: 53, text: 'BATTERIES ...................... OFF / AS REQ', checked: false }
     ]
   });
 
@@ -112,16 +159,15 @@ export default function AirbusEFBApp() {
     }));
   };
 
-  // CHARTS & MAPS
-  const [chartType, setChartType] = useState('SID');
-
-  // FCOM / MEL Search
-  const [searchQuery, setSearchQuery] = useState('');
+  // CHARTS INTEGRADO
+  const [chartType, setChartType] = useState('TAXI');
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const [customChartUrl, setCustomChartUrl] = useState('');
 
   return (
     <div className="w-full h-screen bg-[#070a0f] text-slate-200 font-sans flex flex-col select-none overflow-hidden">
       
-      {/* HEADER SUPERIOR CON CONFIGURACIÓN DE RUTA */}
+      {/* HEADER SUPERIOR */}
       <header className="h-12 bg-gradient-to-b from-[#161c28] to-[#0e131d] border-b border-slate-800 px-4 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
           <span className="bg-cyan-500/10 border border-cyan-400/40 text-cyan-400 font-mono text-xs px-2 py-0.5 rounded font-bold tracking-wide">
@@ -197,7 +243,7 @@ export default function AirbusEFBApp() {
           </div>
         </aside>
 
-        {/* VISTAS DE PESTAÑAS */}
+        {/* CONTENIDOS */}
         <main className="flex-1 p-3 bg-[#070a0f] overflow-y-auto">
           
           {/* PERF TAKEOFF */}
@@ -432,24 +478,33 @@ export default function AirbusEFBApp() {
             </div>
           )}
 
-          {/* CHECKLISTS (NAVEGABLES CON TODAS LAS FASES DE VUELO) */}
+          {/* CHECKLISTS (14 FASES COMPLETAS) */}
           {activeTab === 'checklists' && (
             <div className="bg-[#111622] border border-slate-800 rounded-xl p-4 space-y-4">
-              <h2 className="text-sm font-bold text-cyan-400 tracking-wider border-b border-slate-800 pb-2">LISTAS DE COMPROBACIÓN OPERATIVAS</h2>
+              <h2 className="text-sm font-bold text-cyan-400 tracking-wider border-b border-slate-800 pb-2">LISTAS DE COMPROBACIÓN OPERATIVAS (AIRBUS A320)</h2>
               
               {/* SUB-PESTAÑAS DE FASES DE VUELO */}
-              <div className="flex gap-2 border-b border-slate-800 pb-2 overflow-x-auto">
+              <div className="flex gap-1.5 border-b border-slate-800 pb-2 overflow-x-auto">
                 {[
-                  { id: 'beforeStart', label: 'BEFORE START' },
-                  { id: 'afterStart', label: 'AFTER START' },
-                  { id: 'beforeTakeoff', label: 'BEFORE T/O' },
+                  { id: 'cockpitPreflight', label: 'COCKPIT PREFLIGHT' },
+                  { id: 'cockpitPrep', label: 'COCKPIT PREP' },
+                  { id: 'mcduSetUp', label: 'MCDU SET UP' },
+                  { id: 'startupPrep', label: 'STARTUP PREP' },
+                  { id: 'startup', label: 'STARTUP' },
+                  { id: 'beforeTaxi', label: 'BEFORE TAXI' },
+                  { id: 'beforeTakeoff', label: 'BEFORE TAKEOFF' },
+                  { id: 'takeoff', label: 'TAKEOFF' },
+                  { id: 'afterTakeoff', label: 'AFTER TAKEOFF' },
+                  { id: 'climb', label: 'CLIMB' },
+                  { id: 'descent', label: 'DESCENT' },
                   { id: 'approach', label: 'APPROACH' },
-                  { id: 'landing', label: 'LANDING' },
+                  { id: 'afterLanding', label: 'AFTER LANDING' },
+                  { id: 'shutdown', label: 'SHUTDOWN' },
                 ].map(sub => (
                   <button
                     key={sub.id}
                     onClick={() => setActiveChecklistTab(sub.id)}
-                    className={`px-3 py-1.5 rounded text-xs font-mono font-bold transition whitespace-nowrap ${
+                    className={`px-2.5 py-1.5 rounded text-[11px] font-mono font-bold transition whitespace-nowrap ${
                       activeChecklistTab === sub.id
                         ? 'bg-amber-500/20 border border-amber-400 text-amber-400'
                         : 'bg-[#090d14] border border-slate-800 text-slate-500 hover:text-slate-300'
@@ -462,7 +517,7 @@ export default function AirbusEFBApp() {
 
               {/* LISTA DE ITEMS MARCABLES */}
               <div className="space-y-2">
-                {checklists[activeChecklistTab].map(item => (
+                {checklists[activeChecklistTab]?.map(item => (
                   <div 
                     key={item.id} 
                     onClick={() => toggleChecklist(activeChecklistTab, item.id)} 
@@ -480,53 +535,88 @@ export default function AirbusEFBApp() {
             </div>
           )}
 
-          {/* CHARTS & MAPS (VISOR DINÁMICO) */}
+          {/* CHARTS & MAPS (VISOR PDF / CARTA EMBEBIDO) */}
           {activeTab === 'charts' && (
-            <div className="bg-[#111622] border border-slate-800 rounded-xl p-4 h-full flex flex-col justify-between">
-              <div>
-                <div className="flex justify-between items-center border-b border-slate-800 pb-3 mb-3">
+            <div className="bg-[#111622] border border-slate-800 rounded-xl p-3 h-full flex flex-col justify-between">
+              <div className="space-y-3 flex-1 flex flex-col">
+                <div className="flex justify-between items-center border-b border-slate-800 pb-2">
                   <div className="flex items-center gap-2">
-                    <Compass className="w-5 h-5 text-cyan-400" />
-                    <span className="text-sm font-bold text-cyan-400 font-mono">CARTAS DE NAVEGACIÓN</span>
+                    <Compass className="w-4 h-4 text-cyan-400" />
+                    <span className="text-xs font-bold text-cyan-400 font-mono">VISOR DE CARTAS EMBEBIDO ({origin})</span>
                   </div>
-                  <div className="flex gap-2">
-                    {['SID', 'STAR', 'IAC', 'TAXI'].map(t => (
+                  <div className="flex items-center gap-2">
+                    {['TAXI', 'SID', 'STAR', 'IAC'].map(t => (
                       <button
                         key={t}
                         onClick={() => setChartType(t)}
-                        className={`px-2.5 py-1 rounded text-xs font-mono font-bold ${
+                        className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
                           chartType === t ? 'bg-cyan-500/20 border border-cyan-400 text-cyan-400' : 'bg-[#090d14] text-slate-500'
                         }`}
                       >
                         {t}
                       </button>
                     ))}
+                    <button onClick={() => setZoomLevel(prev => Math.min(prev + 0.2, 2))} className="p-1 bg-[#090d14] rounded border border-slate-800 text-slate-400 hover:text-white">
+                      <ZoomIn className="w-3.5 h-3.5" />
+                    </button>
+                    <button onClick={() => setZoomLevel(prev => Math.max(prev - 0.2, 0.6))} className="p-1 bg-[#090d14] rounded border border-slate-800 text-slate-400 hover:text-white">
+                      <ZoomOut className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 </div>
 
-                <div className="bg-[#090d14] border border-slate-800 rounded-lg p-6 text-center space-y-4">
-                  <div className="flex justify-center gap-6 font-mono text-xs text-slate-400">
-                    <div>SALIDA (ORIGIN): <span className="text-amber-400 font-bold">{origin}</span></div>
-                    <div>DESTINO (DEST): <span className="text-amber-400 font-bold">{destination}</span></div>
-                  </div>
+                {/* VISOR DIRECTO DENTRO DE LA APLICACIÓN */}
+                <div className="flex-1 bg-[#090d14] border border-slate-800 rounded-lg overflow-hidden relative flex flex-col items-center justify-center p-2">
+                  {customChartUrl ? (
+                    <iframe 
+                      src={customChartUrl} 
+                      className="w-full h-full border-none"
+                      title="Carta Aeronáutica PDF"
+                    ></iframe>
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center overflow-auto p-4" style={{ transform: `scale(${zoomLevel})` }}>
+                      {/* SIMULADOR VISUAL DE PISTA / CARTA INTEGRADO */}
+                      <div className="w-full max-w-lg bg-[#111622] border border-cyan-500/30 rounded-lg p-4 font-mono text-left space-y-3">
+                        <div className="flex justify-between text-xs border-b border-slate-800 pb-2">
+                          <span className="text-amber-400 font-bold">{origin} / {chartType} CHART</span>
+                          <span className="text-slate-500">AIRBUS EFB NAV</span>
+                        </div>
+                        <div className="h-44 bg-[#070a0f] border border-slate-800 rounded flex items-center justify-center relative overflow-hidden">
+                          <div className="w-full h-8 bg-slate-800 border-t-2 border-b-2 border-dashed border-slate-500 flex items-center justify-around">
+                            <span className="text-[10px] text-white font-bold tracking-widest">36L</span>
+                            <span className="text-[10px] text-emerald-400 font-bold">||||||||||||</span>
+                            <span className="text-[10px] text-white font-bold tracking-widest">18R</span>
+                          </div>
+                          <div className="absolute top-2 left-2 text-[9px] text-cyan-400">ELEV: 2,000 FT</div>
+                          <div className="absolute bottom-2 right-2 text-[9px] text-emerald-400">RWY 36L/18R 4,179M</div>
+                        </div>
+                        <div className="text-[10px] text-slate-400 flex justify-between">
+                          <span>TRANS ALT: 6000 FT</span>
+                          <span>MAG VAR: 2° W</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
 
-                  <div className="p-4 bg-[#111622] border border-slate-800 rounded-lg max-w-md mx-auto space-y-2">
-                    <span className="text-xs font-bold text-slate-300 block">CARTA SELECCIONADA: {chartType} ({origin})</span>
-                    <p className="text-[11px] text-slate-500">Haz clic abajo para abrir la carta aeronáutica oficial en un visor directo:</p>
-                    <a
-                      href={`https://skyvector.com/?ll=40.4719,-3.5626&chart=302&zoom=3`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 font-bold text-xs px-4 py-2 rounded-lg hover:from-cyan-400"
-                    >
-                      ABRIR CARTA EN NAVEGADOR <ExternalLink className="w-3.5 h-3.5" />
-                    </a>
-                  </div>
+                <div className="flex gap-2 items-center">
+                  <input 
+                    type="text" 
+                    placeholder="Pega aquí la URL directa de una carta en PDF o Imagen para cargarla dentro..." 
+                    value={customChartUrl}
+                    onChange={e => setCustomChartUrl(e.target.value)}
+                    className="flex-1 bg-[#090d14] border border-slate-800 text-xs px-3 py-1.5 rounded text-white outline-none"
+                  />
+                  {customChartUrl && (
+                    <button onClick={() => setCustomChartUrl('')} className="bg-red-500/20 border border-red-500/40 text-red-400 text-xs px-2 py-1 rounded">
+                      Limpiar
+                    </button>
+                  )}
                 </div>
               </div>
 
-              <div className="text-[10px] font-mono text-slate-500 text-center border-t border-slate-800 pt-2">
-                AIRAC CYCLE 2026/08 - JEPPESEN SIMULATED DATA
+              <div className="text-[10px] font-mono text-slate-500 text-center border-t border-slate-800 pt-2 mt-2">
+                AIRAC CYCLE 2026/08 - EMBEDDED NAV SYSTEM
               </div>
             </div>
           )}
@@ -540,8 +630,6 @@ export default function AirbusEFBApp() {
                 <input 
                   type="text" 
                   placeholder="Buscar en FCOM, QRH o MEL..." 
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
                   className="w-full bg-[#090d14] border border-slate-700 rounded-lg pl-9 pr-3 py-2 text-xs text-white outline-none"
                 />
               </div>
