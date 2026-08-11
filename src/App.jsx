@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { 
   Plane, Wifi, BatteryCharging, Gauge, ArrowRight, 
   ShieldCheck, FileText, Map, Settings, AlertTriangle, 
-  CheckCircle2, RefreshCw, Send, CheckSquare, Search, Fuel
+  CheckCircle2, RefreshCw, Send, CheckSquare, Search, Fuel,
+  Compass, ExternalLink
 } from 'lucide-react';
 
 export default function AirbusEFBApp() {
@@ -20,8 +21,11 @@ export default function AirbusEFBApp() {
     return () => clearInterval(timer);
   }, []);
 
-  // PERF TAKEOFF States
-  const [airport, setAirport] = useState('LEMD');
+  // RUTA Y AEROPUERTOS (Salida y Destino)
+  const [origin, setOrigin] = useState('LEMD');
+  const [destination, setDestination] = useState('EGLL');
+
+  // PERF TAKEOFF
   const [runway, setRunway] = useState('36L');
   const [runwayCondition, setRunwayCondition] = useState('DRY');
   const [windDirection, setWindDirection] = useState(220);
@@ -30,15 +34,12 @@ export default function AirbusEFBApp() {
   const [qnh, setQnh] = useState(1025);
   const [tow, setTow] = useState(64.2);
   const [flaps, setFlaps] = useState('CONF 2');
-  const [packs, setPacks] = useState('OFF');
 
   // TAKEOFF Computed Values
   const [v1, setV1] = useState(142);
   const [vr, setVr] = useState(145);
   const [v2, setV2] = useState(149);
   const [flexTemp, setFlexTemp] = useState(58);
-  const [pitchTrim, setPitchTrim] = useState('UP 0.5°');
-  const [cgPercent, setCgPercent] = useState(28.4);
   const [stopMargin, setStopMargin] = useState(1420);
   const [mcduSent, setMcduSent] = useState(false);
 
@@ -59,21 +60,18 @@ export default function AirbusEFBApp() {
     setV2(calculatedV2);
     setFlexTemp(Math.max(calculatedFlex, oat + 10));
     setStopMargin(Math.max(calculatedMargin, 200));
-    
-    const calculatedCG = (25.0 + (tow - 55) * 0.35).toFixed(1);
-    setCgPercent(calculatedCG);
-    setPitchTrim(`UP ${(calculatedCG > 27 ? (calculatedCG - 27) * 0.25 : 0).toFixed(1)}°`);
   }, [tow, flaps, oat, runwayCondition, windSpeed]);
 
-  // LOAD & FUEL States
+  // LOAD & FUEL
   const [paxCount, setPaxCount] = useState(150);
-  const [cargoWeight, setCargoWeight] = useState(2.5); // toneladas
-  const [blockFuel, setBlockFuel] = useState(9.8); // toneladas
-  const oew = 42.5; // Operational Empty Weight
+  const [cargoWeight, setCargoWeight] = useState(2.5);
+  const [blockFuel, setBlockFuel] = useState(9.8);
+  const oew = 42.5;
   const zfw = (oew + (paxCount * 0.084) + cargoWeight).toFixed(1);
   const calculatedTOW = (parseFloat(zfw) + blockFuel).toFixed(1);
 
-  // CHECKLIST State
+  // CHECKLISTS COMPLETAS
+  const [activeChecklistTab, setActiveChecklistTab] = useState('beforeStart');
   const [checklists, setChecklists] = useState({
     beforeStart: [
       { id: 1, text: 'COCKPIT PREP .................... COMPLETED', checked: false },
@@ -87,6 +85,23 @@ export default function AirbusEFBApp() {
       { id: 7, text: 'ECAM STATUS .................... CHECKED', checked: false },
       { id: 8, text: 'PITCH TRIM ..................... SET', checked: false },
       { id: 9, text: 'RUDDER TRIM .................... ZERO', checked: false }
+    ],
+    beforeTakeoff: [
+      { id: 10, text: 'FLIGHT CONTROLS ................ CHECKED', checked: false },
+      { id: 11, text: 'FLAPS SETTING .................. T.O.', checked: false },
+      { id: 12, text: 'MCDU SETTING ................... CHECKED', checked: false },
+      { id: 13, text: 'TCAS ........................... TA/RA', checked: false }
+    ],
+    approach: [
+      { id: 14, text: 'BRIEFING ....................... CONFIRMED', checked: false },
+      { id: 15, text: 'ECAM STATUS .................... CHECKED', checked: false },
+      { id: 16, text: 'BARO REF ....................... SET', checked: false }
+    ],
+    landing: [
+      { id: 17, text: 'CABIN REPORT ................... READY', checked: false },
+      { id: 18, text: 'A/BRK .......................... AS REQ', checked: false },
+      { id: 19, text: 'LANDING GEAR ................... DOWN', checked: false },
+      { id: 20, text: 'FLAPS .......................... FULL', checked: false }
     ]
   });
 
@@ -97,21 +112,37 @@ export default function AirbusEFBApp() {
     }));
   };
 
-  // FCOM Search State
+  // CHARTS & MAPS
+  const [chartType, setChartType] = useState('SID');
+
+  // FCOM / MEL Search
   const [searchQuery, setSearchQuery] = useState('');
 
   return (
     <div className="w-full h-screen bg-[#070a0f] text-slate-200 font-sans flex flex-col select-none overflow-hidden">
       
-      {/* HEADER SUPERIOR */}
-      <header className="h-11 bg-gradient-to-b from-[#161c28] to-[#0e131d] border-b border-slate-800 px-4 flex items-center justify-between shrink-0">
+      {/* HEADER SUPERIOR CON CONFIGURACIÓN DE RUTA */}
+      <header className="h-12 bg-gradient-to-b from-[#161c28] to-[#0e131d] border-b border-slate-800 px-4 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
           <span className="bg-cyan-500/10 border border-cyan-400/40 text-cyan-400 font-mono text-xs px-2 py-0.5 rounded font-bold tracking-wide">
             A320neo (PW1100G)
           </span>
-          <span className="text-xs font-mono text-slate-400">
-            FLT <span className="text-amber-400 font-bold">IBE320</span> | {airport} ➔ EGLL
-          </span>
+          <div className="flex items-center gap-1.5 text-xs font-mono">
+            <span className="text-slate-400 font-bold">FLT IBE320 |</span>
+            <input 
+              type="text" 
+              value={origin} 
+              onChange={e => setOrigin(e.target.value.toUpperCase())}
+              className="w-12 bg-[#090d14] border border-slate-700 text-amber-400 font-bold text-center rounded py-0.5 outline-none"
+            />
+            <span className="text-slate-500">➔</span>
+            <input 
+              type="text" 
+              value={destination} 
+              onChange={e => setDestination(e.target.value.toUpperCase())}
+              className="w-12 bg-[#090d14] border border-slate-700 text-amber-400 font-bold text-center rounded py-0.5 outline-none"
+            />
+          </div>
         </div>
 
         <div className="text-xs font-bold text-slate-400 tracking-widest uppercase hidden md:block">
@@ -166,17 +197,17 @@ export default function AirbusEFBApp() {
           </div>
         </aside>
 
-        {/* CONTENIDO INTERACTIVO SEGÚN PESTAÑA */}
+        {/* VISTAS DE PESTAÑAS */}
         <main className="flex-1 p-3 bg-[#070a0f] overflow-y-auto">
           
-          {/* PESTAÑA 1: PERF TAKEOFF */}
+          {/* PERF TAKEOFF */}
           {activeTab === 'takeoff' && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 h-full">
               <section className="bg-[#111622] border border-slate-800 rounded-xl p-3 flex flex-col justify-between">
                 <div>
                   <div className="flex justify-between items-center border-b border-slate-800 pb-2 mb-3">
                     <span className="text-xs font-bold text-cyan-400 tracking-wider">ENTORNO Y CONFIGURACIÓN</span>
-                    <span className="text-[10px] font-mono text-slate-500">{airport} / {runway}</span>
+                    <span className="text-[10px] font-mono text-slate-500">{origin} / {runway}</span>
                   </div>
 
                   <div className="space-y-3 text-xs">
@@ -343,7 +374,7 @@ export default function AirbusEFBApp() {
             </div>
           )}
 
-          {/* PESTAÑA 2: PERF LANDING */}
+          {/* PERF LANDING */}
           {activeTab === 'landing' && (
             <div className="bg-[#111622] border border-slate-800 rounded-xl p-4 space-y-4">
               <h2 className="text-sm font-bold text-cyan-400 tracking-wider border-b border-slate-800 pb-2">CÁLCULO DE ATERRIZAJE (PERF LANDING)</h2>
@@ -364,12 +395,12 @@ export default function AirbusEFBApp() {
               <div className="bg-[#090d14] border border-emerald-500/30 p-4 rounded-lg text-center">
                 <span className="text-xs text-slate-400 block">DISTANCIA DE PARADA REQUERIDA (RLD)</span>
                 <span className="text-3xl font-mono font-bold text-emerald-400">1,480 M</span>
-                <span className="text-xs text-slate-500 block mt-1">PISTA DISPONIBLE: 4,179 M (MARGEN: +2,699 M)</span>
+                <span className="text-xs text-slate-500 block mt-1">PISTA DISPONIBLE DE {destination}: 3,800 M</span>
               </div>
             </div>
           )}
 
-          {/* PESTAÑA 3: LOAD & FUEL */}
+          {/* LOAD & FUEL */}
           {activeTab === 'load' && (
             <div className="bg-[#111622] border border-slate-800 rounded-xl p-4 space-y-4">
               <h2 className="text-sm font-bold text-amber-400 tracking-wider border-b border-slate-800 pb-2">HOJA DE CARGA Y COMBUSTIBLE</h2>
@@ -401,36 +432,106 @@ export default function AirbusEFBApp() {
             </div>
           )}
 
-          {/* PESTAÑA 4: CHECKLISTS INTERACTIVAS */}
+          {/* CHECKLISTS (NAVEGABLES CON TODAS LAS FASES DE VUELO) */}
           {activeTab === 'checklists' && (
             <div className="bg-[#111622] border border-slate-800 rounded-xl p-4 space-y-4">
               <h2 className="text-sm font-bold text-cyan-400 tracking-wider border-b border-slate-800 pb-2">LISTAS DE COMPROBACIÓN OPERATIVAS</h2>
-              <div className="space-y-4">
-                <div>
-                  <h3 className="text-xs font-bold text-amber-400 mb-2 font-mono">BEFORE START CHECKLIST</h3>
-                  <div className="space-y-1">
-                    {checklists.beforeStart.map(item => (
-                      <div key={item.id} onClick={() => toggleChecklist('beforeStart', item.id)} className={`p-2 rounded border text-xs font-mono flex justify-between items-center cursor-pointer ${item.checked ? 'bg-emerald-950/30 border-emerald-500/50 text-emerald-400' : 'bg-[#090d14] border-slate-800 text-slate-300'}`}>
-                        <span>{item.text}</span>
-                        <CheckSquare className={`w-4 h-4 ${item.checked ? 'text-emerald-400' : 'text-slate-600'}`} />
-                      </div>
-                    ))}
+              
+              {/* SUB-PESTAÑAS DE FASES DE VUELO */}
+              <div className="flex gap-2 border-b border-slate-800 pb-2 overflow-x-auto">
+                {[
+                  { id: 'beforeStart', label: 'BEFORE START' },
+                  { id: 'afterStart', label: 'AFTER START' },
+                  { id: 'beforeTakeoff', label: 'BEFORE T/O' },
+                  { id: 'approach', label: 'APPROACH' },
+                  { id: 'landing', label: 'LANDING' },
+                ].map(sub => (
+                  <button
+                    key={sub.id}
+                    onClick={() => setActiveChecklistTab(sub.id)}
+                    className={`px-3 py-1.5 rounded text-xs font-mono font-bold transition whitespace-nowrap ${
+                      activeChecklistTab === sub.id
+                        ? 'bg-amber-500/20 border border-amber-400 text-amber-400'
+                        : 'bg-[#090d14] border border-slate-800 text-slate-500 hover:text-slate-300'
+                    }`}
+                  >
+                    {sub.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* LISTA DE ITEMS MARCABLES */}
+              <div className="space-y-2">
+                {checklists[activeChecklistTab].map(item => (
+                  <div 
+                    key={item.id} 
+                    onClick={() => toggleChecklist(activeChecklistTab, item.id)} 
+                    className={`p-3 rounded-lg border text-xs font-mono flex justify-between items-center cursor-pointer transition ${
+                      item.checked 
+                        ? 'bg-emerald-950/30 border-emerald-500/50 text-emerald-400' 
+                        : 'bg-[#090d14] border-slate-800 text-slate-300 hover:border-slate-700'
+                    }`}
+                  >
+                    <span>{item.text}</span>
+                    <CheckSquare className={`w-5 h-5 ${item.checked ? 'text-emerald-400' : 'text-slate-600'}`} />
                   </div>
-                </div>
+                ))}
               </div>
             </div>
           )}
 
-          {/* PESTAÑA 5: CHARTS & MAPS */}
+          {/* CHARTS & MAPS (VISOR DINÁMICO) */}
           {activeTab === 'charts' && (
-            <div className="bg-[#111622] border border-slate-800 rounded-xl p-4 h-full flex flex-col items-center justify-center text-center">
-              <Map className="w-12 h-12 text-cyan-400 animate-pulse mb-3" />
-              <h2 className="text-sm font-bold text-slate-200">VISOR DE CARTAS DE NAVEGACIÓN</h2>
-              <p className="text-xs text-slate-500 max-w-sm mt-1">Sincronizado con base de datos Jeppesen / Lido para LEMD - EGLL.</p>
+            <div className="bg-[#111622] border border-slate-800 rounded-xl p-4 h-full flex flex-col justify-between">
+              <div>
+                <div className="flex justify-between items-center border-b border-slate-800 pb-3 mb-3">
+                  <div className="flex items-center gap-2">
+                    <Compass className="w-5 h-5 text-cyan-400" />
+                    <span className="text-sm font-bold text-cyan-400 font-mono">CARTAS DE NAVEGACIÓN</span>
+                  </div>
+                  <div className="flex gap-2">
+                    {['SID', 'STAR', 'IAC', 'TAXI'].map(t => (
+                      <button
+                        key={t}
+                        onClick={() => setChartType(t)}
+                        className={`px-2.5 py-1 rounded text-xs font-mono font-bold ${
+                          chartType === t ? 'bg-cyan-500/20 border border-cyan-400 text-cyan-400' : 'bg-[#090d14] text-slate-500'
+                        }`}
+                      >
+                        {t}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="bg-[#090d14] border border-slate-800 rounded-lg p-6 text-center space-y-4">
+                  <div className="flex justify-center gap-6 font-mono text-xs text-slate-400">
+                    <div>SALIDA (ORIGIN): <span className="text-amber-400 font-bold">{origin}</span></div>
+                    <div>DESTINO (DEST): <span className="text-amber-400 font-bold">{destination}</span></div>
+                  </div>
+
+                  <div className="p-4 bg-[#111622] border border-slate-800 rounded-lg max-w-md mx-auto space-y-2">
+                    <span className="text-xs font-bold text-slate-300 block">CARTA SELECCIONADA: {chartType} ({origin})</span>
+                    <p className="text-[11px] text-slate-500">Haz clic abajo para abrir la carta aeronáutica oficial en un visor directo:</p>
+                    <a
+                      href={`https://skyvector.com/?ll=40.4719,-3.5626&chart=302&zoom=3`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 font-bold text-xs px-4 py-2 rounded-lg hover:from-cyan-400"
+                    >
+                      ABRIR CARTA EN NAVEGADOR <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                  </div>
+                </div>
+              </div>
+
+              <div className="text-[10px] font-mono text-slate-500 text-center border-t border-slate-800 pt-2">
+                AIRAC CYCLE 2026/08 - JEPPESEN SIMULATED DATA
+              </div>
             </div>
           )}
 
-          {/* PESTAÑA 6: FCOM / MEL */}
+          {/* FCOM / MEL */}
           {activeTab === 'docs' && (
             <div className="bg-[#111622] border border-slate-800 rounded-xl p-4 space-y-4">
               <h2 className="text-sm font-bold text-cyan-400 tracking-wider border-b border-slate-800 pb-2">DOCUMENTACIÓN TÉCNICA (FCOM / MEL)</h2>
@@ -443,6 +544,11 @@ export default function AirbusEFBApp() {
                   onChange={e => setSearchQuery(e.target.value)}
                   className="w-full bg-[#090d14] border border-slate-700 rounded-lg pl-9 pr-3 py-2 text-xs text-white outline-none"
                 />
+              </div>
+              <div className="bg-[#090d14] p-3 rounded-lg border border-slate-800 text-xs font-mono space-y-2 text-slate-300">
+                <div className="text-amber-400 font-bold">FCOM A320 - LIM-ENGINE-01</div>
+                <div>MAX TOGA TIME: 5 MIN (10 MIN ENG OUT)</div>
+                <div>MAX EGT TOGA: 1060°C</div>
               </div>
             </div>
           )}
